@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Weiterleitung…</title>
+  <!-- Fallback: 2s warten, dann weiter -->
+  <meta http-equiv="refresh" content="2; url=lager_pwa_238.html">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;display:grid;place-items:center;height:100vh;background:#0a0f1a;color:#fff}
+    a{color:#fff;background:#f97316;padding:10px 14px;border-radius:10px;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Handy Lager</h1>
+    <p>Weiterleitung zur App…</p>
+    <p><a href="lager_pwa_238.html">Hier klicken, falls nichts passiert</a></p>
+  </div>
+  <script>
+    // Sofortige Weiterleitung
+    location.replace("lager_pwa_238.html");
+  </script>
+</body>
+</html>

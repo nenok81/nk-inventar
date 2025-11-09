@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Handy Lager – Start</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <style>
+    :root {
+      --brand:#f97316;
+      --bg:#0a0f1a;
+      --txt:#fff;
+    }
+    body {
+      font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      color: var(--txt);
+      text-align: center;
+    }
+    .box {
+      max-width: 360px;
+      padding: 20px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 20px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.4);
+    }
+    h1 {
+      color: var(--brand);
+      margin-bottom: 0.2em;
+    }
+    p {color:#d1d5db; font-size:14px;}
+    a {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.2s;
+    }
+    a:hover {filter: brightness(1.1);}
+    .loader {
+      width: 40px; height: 40px;
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top: 4px solid var(--brand);
+      border-radius: 50%;
+      margin: 20px auto;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>📦 Handy Lager</h1>
+    <p>Starte App … du wirst automatisch weitergeleitet.</p>
+    <div class="loader"></div>
+    <p><a href="login.html">Falls nichts passiert → Zur Anmeldung</a></p>
+  </div>
+
+  <script>
+    // automatische Weiterleitung nach 1 Sekunde
+    setTimeout(() => {
+      location.replace("login.html");
+    }, 1000);
+  </script>
+</body>
+</html>
