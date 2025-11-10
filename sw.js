@@ -5,7 +5,7 @@
    - In Firebase haben wir für sw.js bereits "Cache-Control: no-store" gesetzt.
 */
 
-const CACHE_NAME = 'nk-inventar-v3'; // <-- bei Updates hochzählen
+const CACHE_NAME = 'nk-inventar-v4'; // <-- bei Updates hochzählen
 const ASSETS = [
   '/',                 // Root (nur wenn eure Startseite index.html im Root liegt)
   '/index.html',
