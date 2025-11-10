@@ -703,6 +703,30 @@ async function onAdd(e){
   const name = (document.getElementById('name').get.value || '').trim() // error; fix
 }
 </script>
+<!-- Lager-Admin (Firestore-UI) -->
+<section id="lager-admin" style="max-width:900px;margin:16px auto;padding:16px;border:1px solid #334;border-radius:12px;background:#121a33;color:#e9eefc">
+  <h2 style="margin:0 0 12px;">Lager – Artikel verwalten</h2>
 
+  <form id="f" style="display:grid;grid-template-columns:1fr 2fr 1fr auto;gap:8px;align-items:center;margin-bottom:12px">
+    <input id="sku" placeholder="SKU" required style="padding:10px;border-radius:8px;border:1px solid #445;background:#0b1020;color:#e9eefc">
+    <input id="name" placeholder="Name" required style="padding:10px;border-radius:8px;border:1px solid #445;background:#0b1020;color:#e9eefc">
+    <input id="qty" type="number" placeholder="Menge" value="0" required style="padding:10px;border-radius:8px;border:1px solid #445;background:#0b1020;color:#e9eefc">
+    <button type="submit" style="padding:10px 14px;border-radius:8px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;font-weight:600">Speichern</button>
+  </form>
+
+  <div id="msg" style="font-size:13px;color:#a9b6d9;margin-bottom:8px"></div>
+
+  <table style="width:100%;border-collapse:collapse">
+    <thead>
+      <tr style="text-align:left;color:#a9b6d9">
+        <th style="padding:8px;border-bottom:1px solid #334">SKU</th>
+        <th style="padding:8px;border-bottom:1px solid #334">Name</th>
+        <th style="padding:8px;border-bottom:1px solid #334">Menge</th>
+        <th style="padding:8px;border-bottom:1px solid #334">Aktionen</th>
+      </tr>
+    </thead>
+    <tbody id="list"></tbody>
+  </table>
+</section>
 </body>
 </html>
