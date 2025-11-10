@@ -170,13 +170,14 @@
 
     // 👉👉👉 HIER DEINE KONFIG EINFÜGEN
     const firebaseConfig = {
-      apiKey: "AIzaSyD4oIfqmOOWSbUwD1cHn-fHv9qo5RSa47o",
-      authDomain: "DEIN_PROJECT_ID.firebaseapp.com",
-      projectId: "DEIN_PROJECT_ID",
-      storageBucket: "DEIN_PROJECT_ID.appspot.com",
-      messagingSenderId: "DEINE_SENDER_ID",
-      appId: "DEINE_APP_ID"
-    };
+  apiKey: "AIzaSyD4oIfqmOOWSbUwD1cHn-fHv9qo5RSa47o",
+  authDomain: "nk-inventar.firebaseapp.com",
+  projectId: "nk-inventar",
+  storageBucket: "nk-inventar.firebasestorage.app",
+  messagingSenderId: "1007484310315",
+  appId: "1:1007484310315:web:3069564137e9a728b1eb6e",
+  measurementId: "G-PBSF173GG0"
+};
 
     const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     const auth = getAuth(app);
