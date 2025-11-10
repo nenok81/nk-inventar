@@ -1,6 +1,6 @@
 {
   "id": "handy-lager-pwa",
-  "name": "Handyy Lager",
+  "name": "Handy Lager",
   "short_name": "Lager",
   "start_url": "lager_pwa_238.html",
   "scope": "./",
