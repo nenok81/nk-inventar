@@ -1,5 +1,5 @@
 // sw.js – NK Inventar
-const CACHE_NAME = 'nk-inventar-v1';
+const CACHE_NAME = 'nk-inventar-v1';   
 const ASSETS = [
   '/',
   '/index.html',
