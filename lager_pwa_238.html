@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Handy Lager – PWA • Build PWA-C3-CSV-IMP</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a"/>
+  <link rel="icon" href="https://dummyimage.com/192x192/f97316/ffffff.png&text=HL">
+  <style>
+    :root{--brand:#f97316;--ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--bd:#e5e7eb;--bg:#0a0f1a;--txt:#0b1220;--muted:#64748b}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+    header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px;background:linear-gradient(120deg,#111827 0%,#ea580c 55%,#f97316 100%);color:#fff;position:sticky;top:0;z-index:10}
+    .row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+    .wrap{max-width:1000px;margin:0 auto;padding:16px}
+    .card{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:14px;margin:12px 0;box-shadow:0 8px 20px rgba(0,0,0,.05)}
+    .btn{border:1px solid var(--bd);background:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn:hover{filter:brightness(0.95)}
+    .btn.danger{background:#fff1f2;color:#b91c1c;border-color:#fecdd3}
+    .badge{display:inline-block;padding:2px 8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#9a3412;font-size:12px}
+    .thumb{width:84px;height:84px;border:1px solid var(--bd);border-radius:14px;display:grid;place-items:center;background:#f8fafc;color:#94a3b8;flex:0 0 auto}
+    .thumb img{width:100%;height:100%;object-fit:cover;border-radius:14px}
+    .input,.select{border:1px solid var(--bd);border-radius:10px;padding:10px 12px;background:#fff}
+    .kpi{display:flex;gap:24px;color:#fff;flex-wrap:wrap}
+    .kpi strong{font-size:18px}
+    .pill{padding:6px 10px;border:1px solid var(--bd);border-radius:999px;background:#f8fafc}
+    .list{display:flex;flex-direction:column;gap:12px}
+    .row.space{justify-content:space-between}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="row">
+      <img class="thumb" style="width:42px;height:42px" src="https://dummyimage.com/96x96/000/fff.png&text=HL" alt="HL">
+      <div><strong>Handy Lager – PWA</strong> • <span>Build PWA-C3-CSV-IMP</span></div>
+    </div>
+    <div class="row">
+      <span class="badge" id="activeCustomerBadge">–</span>
+      <button id="btnHardReset" class="btn danger" title="Alle lokalen Daten & Cache löschen">DB-Reset</button>
+      <button id="btnLogout" class="btn" title="Abmelden">Abmelden</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="kpi">
+      <div><strong id="kpiItems">0</strong> Artikel</div>
+      <div><strong id="kpiQty">0</strong> Stk. gesamt</div>
+    </div>
+
+    <div class="card">
+      <h3>Lagerorte, Suche, Sortieren & Export/Import</h3>
+      <div class="row">
+        <button id="btnAddLoc" class="btn">+ Lagerort</button>
+        <button id="btnRenLoc" class="btn">Ort umbenennen</button>
+        <button id="btnDelLoc" class="btn danger">Ort löschen</button>
+        <div class="row" style="margin-left:auto">
+          <select id="customerSel" class="select"></select>
+          <select id="sortBy" class="select">
+            <option value="ts_desc">Neueste zuerst</option>
+            <option value="ts_asc">Älteste zuerst</option>
+            <option value="name_asc">Name A→Z</option>
+            <option value="name_desc">Name Z→A</option>
+            <option value="qty_desc">Menge ↓</option>
+            <option value="qty_asc">Menge ↑</option>
+            <option value="loc_asc">Ort A→Z</option>
+            <option value="loc_desc">Ort Z→A</option>
+          </select>
+          <button id="btnResetFilters" class="btn">Reset</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <input id="search" class="input" placeholder="Suchen (Name, Ort)">
+      </div>
+
+      <div id="locOverview" class="row" style="margin-top:8px"></div>
+
+      <div class="row" style="margin-top:8px;flex-wrap:wrap">
+        <button id="btnExportJson" class="btn">⬇️ JSON Export</button>
+        <label class="btn">⬆️ JSON Import
+          <input id="importJsonFile" type="file" accept="application/json" style="display:none">
+        </label>
+
+        <button id="btnExportCsvItems" class="btn">🧾 CSV Artikel</button>
+        <button id="btnExportCsvMoves" class="btn">🧾 CSV Bewegungen</button>
+        <label class="btn">⬆️ CSV Import (Artikel)
+          <input id="importCsvItems" type="file" accept=".csv,text/csv" style="display:none">
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Neuer Artikel</h3>
+      <form id="formNew" class="row">
+        <input id="name" class="input" placeholder="Artikelname *" required>
+        <input id="qty"  class="input" type="number" min="0" value="1" style="width:110px">
+        <select id="loc" class="select" required></select>
+
+        <label class="btn">📁 Galerie
+          <input id="fileGallery" type="file" accept="image/*" style="display:none">
+        </label>
+        <label class="btn">📷 Kamera
+          <input id="fileCamera" type="file" accept="image/*" capture="environment" style="display:none">
+        </label>
+        <div id="preview" class="pill">Vorschau</div>
+
+        <button class="btn" type="submit">➕ Hinzufügen</button>
+      </form>
+    </div>
+
+    <div class="list" id="list"></div>
+  </main>
+
+  <script>
+/* ─────────────────────────────────────────────────────────────
+   0) SAFETY: Guard + Hard-Reset – **MUSS ganz oben im Script stehen**
+   ───────────────────────────────────────────────────────────── */
+if (!('indexedDB' in window)) {
+  alert('Dieses Fenster/Browser unterstützt keine IndexedDB (z. B. Inkognito). Bitte normalen Modus verwenden.');
+  // Bei fehlender IDB: zurück zur Loginseite (falls genutzt) – sonst nur abbrechen:
+  // location.href = 'login.html';
+}
+
+// Globale „Hard-Reset“-Funktion, die auch die Caches löscht:
+async function hardReset(){
+  try{
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) { try{ await r.unregister(); }catch(e){} }
+    }
+    if ('caches' in self) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ('indexedDB' in window) {
+      if (indexedDB.databases) {           // moderne Browser
+        const dbs = await indexedDB.databases();
+        for (const d of dbs) {
+          try{ await new Promise(res => { const rq = indexedDB.deleteDatabase(d.name); rq.onsuccess=rq.onerror=()=>res(); }); }catch(e){}
+        }
+      } else {
+        // Fallback – bekannte DBs löschen
+        for (const name of ['lagerPWA_C3','lagerPWA_CUST','lagerPWA_CUST_NO_SW','lagerPWA_CUST2','lagerPWA_CUST3']) {
+          try{ await new Promise(res => { const rq = indexedDB.deleteDatabase(name); rq.onsuccess=rq.onerror=()=>res(); }); }catch(e){}
+        }
+      }
+    }
+    localStorage.clear();
+    alert('Lokale Daten & Cache wurden gelöscht. App wird neu gestartet.');
+    location.href = location.pathname.replace(/[^/]+$/,'') + 'login.html';
+  }catch(err){
+    alert('Reset-Fehler: '+ (err?.message || err));
+    location.reload();
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   1) Service Worker registrieren (optional)
+   ───────────────────────────────────────────────────────────── */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({type:'SKIP_WAITING'});
+      }
+      navigator.serviceWorker.addEventListener('controllerchange', ()=> location.reload());
+    } catch(e) {
+      console.warn('SW Registrierung übersprungen/fehlgeschlagen:', e);
+    }
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2) State / DB-Wrapper / Helfer
+   ───────────────────────────────────────────────────────────── */
+let idb;
+let activeCustomerId = Number(localStorage.getItem('hl_active_customer') || 0);
+let currentImageData = ''; // base64 Bild
+
+function objStore(name, mode='readonly'){
+  return idb.transaction([name], mode).objectStore(name);
+}
+function getAll(store){ return new Promise(res=>{ const r=objStore(store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); }); }
+function getOne(store,key){ return new Promise(res=>{ const r=objStore(store).get(key); r.underfined ?? ; r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); }); }
+function putOne(store, obj){ return new Promise((res,rej)=>{ const tx = idb.transaction([store],'readwrite'); const r = tx.objectStore(store).put(obj); r.onsuccess=()=>res(true); r.onerror=()=>rej(r.error); }); }
+function delOne(store, key){ return new Promise(res=>{ const tx=idb.transaction([store],'readwrite'); const r=tx.objectStore(store).delete(key); r.onsuccess=()=>res(true); r.onerror=()=>res(false); }); }
+
+/* Bildkomprimierung */
+async function compressFile(file, max=1024, quality=0.8){
+  const data = await file.arrayBuffer();
+  const blob = new Blob([data]);
+  const imgURL = URL.createObjectURL(blob);
+  await new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const ratio = Math.min(1, max/Math.max(img.width, img.height));
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      const out = canvas.toDataURL('image/jpeg', quality);
+      URL.revokeObjectURL(imgURL);
+      resolve(out);
+    };
+    img.onerror = err => reject(err);
+    img.src = imgURL;
+  });
+}
+
+/* CSV Helfer */
+function toCSVRow(arr, sep=';'){
+  return arr.map(c=>{
+    const s = (c==null?'':String(c));
+    return /[;\n",]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  }).join(sep);
+}
+function downloadFile(name, blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.reuse ? 0 : URL.revokeObjectURL(url); a.remove(); }, 1200);
+}
+function parseCsv(text){
+  // robuster einfacher CSV Parser (unterstützt Quotes + ; oder ,)
+  const src = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const lines = [];
+  let row=[], cell='', inQ=false;
+  for (let i=0;i<src.length;i++){
+    const ch = src[i];
+    if (inQ){
+      if (ch === '"'){
+        if (src[i+1] === '"'){ cell+='"'; i++; }
+        else { inQ=false; }
+      } else {
+        cell += ch;
+      }
+    } else {
+      if (ch === '"' ){ inQ=true; }
+      else if (ch === ';' || ch === ',' ){ row.push(cell); cell=''; }
+      else if (ch === '\n'){ row.push(cell); lines.push(row); row=[]; cell=''; }
+      else { cell += ch; }
+    }
+  }
+  if (cell.length || row.length) { row.push(cell); lines.push(row); }
+  return lines.filter(r => r.length && r.some(x=>x.trim()!=='')); 
+}
+function idxOf(headers, ...alts){
+  const H = headers.map(h=>h.trim().toLowerCase());
+  for (const a of alts){ const i = H.indexOf(a.toLowerCase()); if (i>=0) return i; }
+  return -1;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3) Session / Customers & Meta
+   ───────────────────────────────────────────────────────────── */
+async function ensureSeedData(){
+  const customers = await getAll('customers');
+  if (customers.length === 0){
+    const c1 = {id: Date.now(),     name:'Kunde A', created: Date.now()};
+    const c2 = {id: Date.now() + 1, name:'Kunde B', created: Date.now()+1};
+    await putOne('customers', c1);
+    await putOne('customers', c2);
+    await putOne('meta', {key: 'meta_'+c1.id, locs: ['Hauptlager','Regal A1','Regal A2','Regal B1','Regal B2']});
+    await putOne('meta', {key: 'meta_'+c2.id, locs: ['Hauptlager']});
+    activeCustomerId = c1.id;
+    localStorage.setItem('hl_active_customer', String(activeCustomerId));
+  }
+}
+
+async function getCustomerMeta(id){
+  const m = await getOne('meta', 'meta_'+id);
+  if (m) return m;
+  const fresh = {key:'meta_'+id, locs:['Hauptlager']};
+  await putOne('meta', fresh);
+  return fresh;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4) UI: Init & Events
+   ───────────────────────────────────────────────────────────── */
+document.getElementById('btnHardReset').addEventListener('click', ()=>{
+  if (confirm('Wirklich alle lokalen Daten & Cache löschen?')) {
+    hardReset();
+  }
+});
+
+document.getElementById('btnLogout').addEventListener('click', ()=>{
+  localStorage.removeItem('hl_session'); // optional, falls verwendet
+  alert('Abgemeldet.');
+  // optional zur Login-Seite:
+  // location.href = 'login.html';
+});
+
+let currentImageData = '';
+
+document.getElementById('fileGallery').addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  try{
+    currentImageData = await compressFile(f, 1024, .82);
+    const pv = document.getElementById('preview');
+    pv.innerHTML = `<img src="${currentImageData}" alt="Bild">`;
+  }catch(err){ alert('Bild konnte nicht geladen werden: '+(err?.message||err)); }
+});
+
+document.getElementById('fileCamera').addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  try{
+    currentImageData = await compressFile(f, 1280, .82);
+    const pv = document.getElementById('preview');
+    pv.innerHTML = `<img src="${currentImageData}" alt="Aufnahme">`;
+  }catch(err){ alert('Kamera/Bild konnten nicht verarbeitet werden.'); }
+});
+
+document.getElementById('formNew').addEventListener('submit', onAdd);
+document.getElementById('btnAddLoc').addEventListener('click', async ()=>{
+  const name = (prompt('Neuer Lagerort (z. B. „Regal A1“)?')||'').trim();
+  if(!name) return;
+  const meta = await getCustomerMeta(activeCustomerId);
+  if(!meta.locs.includes(name)) {
+    meta.locs.push(name);
+    await putOne('meta', meta);
+    await renderLocsUI();
+  } else {
+    alert('Diesen Lagerort gibt es bereits.');
+  }
+});
+
+document.getElementById('btnCustRen').addEventListener('click', async ()=>{
+  const cs = await getAll('customers');
+  const cur = cs.find(c=>c.id===activeCustomerId);
+  if(!cur){ alert('Kein Kunde gewählt'); return; }
+  const newName = (prompt('Neuer Kundenname:', cur.name)||'').trim();
+  if(!newName) return;
+  await putOne('customers', {...cur, name: newName});
+  await renderHeader();
+});
+
+document.getElementById('btnCustDel').addEventListener('click', async ()=>{
+  const cs = await getAll('customers');
+  const cur = cs.find(c=>c.id===activeCustomerId);
+  if(!cur){ alert('Kein Kunde gewählt'); return; }
+  if(!confirm(`Kunde „${cur.name}“ inkl. Artikel/Bewegungen löschen?`)) return;
+
+  // Items & Moves dieses Kunden löschen
+  const items = (await getAll('items')).filter(i=>i.customerId===activeCustomerId);
+  const tx = idb.transaction(['items','meta','moves'],'readwrite');
+  const sI = tx.objectStore('items');
+  const sM = tx.objectStore('meta');
+  const sV = tx.objectStore ? tx.objectStore('moves') : null;
+
+  for(const it of items){ try{ sI.delete(it.id); }catch(e){} }
+  try{ sM.delete('meta_'+activeCustomerId); }catch(e){}
+  if (sV) {
+    const allMv = await getAll('moves');
+    for (const m of allMv){ if(m.customerId===activeCustomerId){ try{ sV.delete(m.id);}catch(e){} } }
+  }
+  tx.oncomplete = async ()=>{
+    const left = (await getAll('customers')).filter(c=>c.id!==activeCustomerId);
+    await delOne('customers', activeCustomerId);
+    const rest = await getAll('customers');
+    if (rest.length===0){
+      // zurück zum Startzustand
+      await putOne('customers', {id: Date.now(), name: 'Kunde A', created: Date.now()});
+      await putOne('meta', {key:'meta_'+Date.now(), locs:['Hauptlager']});
+    }
+    const list = await getAll('customers');
+    activeCustomerId = list[0].id;
+    localStorage.setItem('hl_active_customer', String(activeCustomerId));
+    await renderHeader();
+    await renderAll();
+  };
+});
+
+document.getElementById('btnResetFilters').addEventListener('click', ()=>{
+  document.getElementById('search').value='';
+  document.getElementById('sortBy').value='ts_desc';
+  renderList();
+});
+
+document.getElementById('customerSel').addEventListener('change', async (e)=>{
+  active = Number(e.target.value);
+  activeCustomerId = active;
+  localStorage.setItem('hl_active_customer', String(activeCustomerId));
+  await renderHeader();
+  await renderAll();
+});
+
+// Delegation für Artikel-Buttons (+ / − / Bearbeiten / Löschen)
+document.getElementById('list').addEventListener('click', async (ev)=>{
+  const btn = ev.target.closest('button'); if(!btn) return;
+  const card = ev.target.closest('[data-id]'); if(!card) return;
+  const id = Number(card.dataset.id);
+  const action = btn.dataset.action;
+  if (action === 'inc') return changeQty(id, +1);
+  if (action === 'dec') return changeQty(id, -1);
+  if (action === 'edit') return editItem(id);
+  if (action === 'del') return deleteItem(id);
+});
+
+/* ===== DB-Wrapper Hilfsfunktionen ===== */
+function changeQty(id, delta){
+  const tx = idb.transaction(['items','moves'],'readwrite');
+  const sItems = tx.objectStore('items');
+  const sMoves = tx.objectStore('moves');
+
+  const getReq = sItems.get(id);
+  getReq.onsuccess = ()=>{
+    const it = getReq.result;
+    if(!it){ return; }
+    const newQty = Math.max(0, (it.qty||0) + delta);
+    it.qty = newQty;
+    sItems.put(it);
+    // Bewegungen loggen
+    const mv = {
+      id: Date.now()+Math.random(),
+      ts: Date.now(),
+      itemId: it.id,
+      itemName: it.name,
+      qty: Math.abs(delta),
+      type: (delta>=0?'in':'out'),
+      loc: it.loc,
+      customerId: activeCustomerId
+    };
+    sMoves.put(mv);
+  };
+  tx.oncomplete = ()=>{ renderAll(); };
+}
+
+async function editItem(id){
+  const store = objStore('items','readwrite');
+  const req = store.get(id);
+  req.onsuccess = async ()=>{
+    const it = req.result;
+    if(!it){ return; }
+    const newName = prompt('Neuer Artikelnamen:', it.name) || it.name;
+    const newQty  = Number(prompt('Neuer Bestand:', it.qty) || it.qty);
+    const newLoc  = prompt('Neuer Lagerort:', it.loc) || it.loc;
+    it.name = newName.trim();
+    it.qty  = isNaN(newQty)? it.qty : newQty;
+    it.loc  = newLoc.trim() || it.loc;
+    await putOne('items', it);
+    renderAll();
+  };
+}
+
+async function deleteItem(id){
+  if(!confirm('Diesen Artikel löschen?')) return;
+  await delOne('items', id);
+  renderAll();
+}
+
+function formatDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleString();
+}
+
+/* ===== CSV/JSON Export/Import (pro aktivem Kunden) ===== */
+async function exportJson(){
+  const itemsAll = await getAll('items');
+  const items = itemsAll.filter(i => i.customerId === activeCustomerId);
+  const meta = await getCustomerMeta(activeCustomerId);
+  const dump = { schema:'handy-lager-export', version:4, ts:Date.now(), customerId: activeCustomerId, meta, items };
+  const blob = new Blob([JSON.stringify(dump, null, 2)], {type:'application/json'});
+  downloadFile(`lager_export_${Date.now()}.json`, blob);
+}
+document.getElementById('btnExportJson').addEventListener('click', exportJson);
+
+document.getElementById('importJsonFile').addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const text = await f.text();
+  let data;
+  try{ data = JSON.parse(text); }catch(e){ alert('Ungültige JSON-Datei.'); return; }
+  if (!data || data.schema!=='handy-lager-export') {
+    alert('Unerwartetes JSON-Format.'); return;
+  }
+  if (!confirm('Import starten? Bestehende Artikel dieses Kunden werden überschrieben.')) return;
+
+  // Nur für aktiven Kunden importieren – seine ID bleibt gleich
+  const tx = idb.transaction(['items','meta'],'readwrite');
+  const sI = tx.objectStore('items');
+  const sM = tx.blockstore? tx.blockstore('meta'): tx.objectStore('meta');
+
+  // Alte Items des aktiven Kunden löschen:
+  const all = await getAll('items');
+  const mine = all.filter(i=>i.customerId===activeCustomer);
+  for (const it of mine){ try{ sI.delete(it.id);}catch(e){} }
+
+  // Meta übernehmen (nur Lagerorte)
+  const meta = await getCustomerMeta(activeCustomerId);
+  const incomingLocs = Array.isArray(data.meta?.locs) ? data.meta.locs : ['Hauptlager'];
+  meta.locs = Array.from(new Set([...(meta.lists||['Hauptlager']), ...incomingLocs]));
+  await putOne('meta', {...meta});
+
+  // Items einspielen
+  const items = Array.isArray(data.items) ? data.items : [];
+  for (const src of items){
+    const it = {
+      id: Date.now() + Math.floor(Math.random()*1000000),
+      ts: Date.now(),
+      name: String(src.name||'').trim(),
+      qty: Number(src.qty||0),
+      loc: String(src.loc||'Hauptlager').trim(),
+      imgData: typeof src.imgData==='string' ? src.imgData : '',
+      customerId: activeCustomerId
+    };
+    await putOne('items', it);
+  }
+
+  tx.oncomplete = ()=>{ renderAll(); };
+  e.target.value = '';
+  alert('JSON-Import abgeschlossen.');
+});
+
+document.getElementById('importCsvItems').addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const text = await f.text();
+  const rows = parseCsv(text);
+  if (!rows.length){ alert('CSV ist leer.'); return; }
+  const headers = rows[0].map(h=>h.trim().toLowerCase());
+  const iName = headers.indexOf('name');
+  const iQty  = headers.indexOf('menge') >= 0 ? headers.indexOf('menge') : headers.indexOf('qty');
+  const iLoc  = headers.indexOf('lagerort') >= 0 ? headers.indexOf('lager') : headers.indexOf('lagerort');
+
+  if (iName<0 || iQty<0) {
+    alert('CSV muss Spalten „Name“ und „Menge“ enthalten (Trenner ; oder ,). Optional: „Lagerort“.');
+    e.target.value='';
+    return;
+  }
+
+  const itemsAll = await getAll('items');
+  const existing = new Map(itemsAll.filter(i=>i.customerId===activeCustomerId).map(i=>[i.name.toLowerCase(), i]));
+  const meta = await getCustomerMeta(activeCustomerId);
+  const locSet = new Set(meta.locs);
+
+  let added=0, updated=0;
+  for (let r=1; r<rows.length; r++){
+    const cols = rows[r];
+    const name = String(cols[iName]||'').trim();
+    if(!name) continue;
+    const qty  = Number(String(cols[iQty]||'0').replace(',','.'));
+    let  loc   = iLoc>=0 ? String(cols[iLoc]||'').trim() : '';
+    if (loc && !locSet.has(loc)) { locSet.add(loc); }
+    const key = name.toLowerCase();
+    const ex  = existing.get(key);
+    if (ex){
+      ex.qty = isNaN(qty)? ex.qty : qty;
+      if (loc) ex.loc = loc;
+      await putOne('items', ex);
+      updated++;
+    } else {
+      const it = { id: Date.now()+Math.random(), ts: Date.now(), name, qty: isNaN(qty)?0:qty, loc: (loc||'Hauptlager'), imgData:'', customerId: activeCustomerId };
+      await putOne('items', it);
+      added++;
+    }
+  }
+  await putOne('meta', {key:'meta_'+activeCustomerId, locs: Array.from(locSet)});
+  await renderAll();
+  e.target.value='';
+  alert(`CSV-Import OK\nNeu: ${added}\nAktualisiert: ${updated}`);
+});
+
+document.getElementById('btnExportCsvItems').addEventListener('click', async()=>{
+  const items = (await getAll('items')).filter(i=>i.customerId===activeCustomerId);
+  const header = toCSVRow(['ID','Name','Menge','Lagerort','ErstelltTS','HatBild']);
+  const rows = items.map(i=> toCSVRow([i.id, i.name, i.qty, i.loc, i.ts, i.imgData? 'ja':'nein']) );
+  const blob = new Blob(['\uFEFF'+[header, ...rows].join('\n')], {type:'text/csv;charset=utf-8'});
+  downloadFile(`lager_artikel_${Date.now()}.csv`, blob);
+});
+document.getElementById('btnExportCsvMoves').addEventListener('click', async()=>{
+  const moves = (await getAll('moves')).filter(m=>m.customerId===activeCustomerId);
+  const header = toCSVRow(['Zeit','Artikel','Menge','Typ','Lagerort']);
+  const rows = moves.sort((a,b)=>a.ts-b.ts).map(m=> 
+    toCSV_row([ new Date(m.ts).toLocaleString(), m.itemName||'', m.qty||0, m.type||'', m.loc||'' ])
+  );
+  const blob = new Blob(['\uFEFF'+[header, ...rows].join('\n')], {type:'text/csv;charset=utf-8'});
+  downloadFile(`lager_bewegungen_${Date.now()}.csv`, blob);
+});
+
+/* ===== Hilfsfunktionen für Items / UI ===== */
+function getStore(name, mode='readonly'){ return idb.transaction([name],mode).get(name); }
+
+async function renderHeader(){
+  const cs = await getAll('customers');
+  const sel = document.getElementById('customerSel');
+  sel.innerHTML = cs.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  if (!activeCustomerId || !cs.find(x => x.id === activeCustomerId)){
+    active = cs[0]?.id;
+    activeCustomerId = active;
+    localStorage.setItem('hl_active_customer', String(activeCustomerId||''));
+  }
+  const active = cs.find(c=>c.id===activeCustomerId) || cs[0];
+  if (active) {
+    sel.value = String(active.id);
+    document.getElementById('activeCustomerBadge').textContent = active.name || '–';
+  }
+}
+
+async function renderLocsUI(){
+  const meta = await getOne('meta','meta_'+activeCustomerId) || {key:'meta_'+activeCustomerId, locs:['Hauptlager']};
+  const locSel = document.getElementById('loc');
+  const opts = ['<option value="" disabled selected>Lagerort wählen *</option>']
+    .concat( (meta.locs||['Hauptlager']).map(l=>`<option value="${l}">${l}</option>`) );
+  locSel.innerHTML = opts.join('');
+
+  // Übersicht
+  const items = (await getAll('items')).filter(i=>i.customerId===activeCustomerId);
+  const totals = {};
+  for (const it of items){ totals[it.loc] = (totals[it.loc]||0) + (Number(it.qty)||0); }
+  const overview = document.getElementById('locOverview');
+  overview.innerHTML = (meta.locs||[]).map(l => `<span class="badge">${l}: ${totals[l]||0} Stk.</span>`).join(' ');
+}
+
+async function renderList(){
+  // Filter + Sort anwenden
+  const q = (document.getElementById('search').value||'').toLowerCase();
+  const sortBy = document.getElementById('sortBy').value;
+
+  const all = await getAll('items');
+  let items = all.filter(i=> i.customerId===activeCustomerId &&
+                             ( !q || (i.name?.toLowerCase().includes(q) || (i.loc||'').toLowerCase().includes(q)) ));
+
+  // sortieren
+  items.sort((a,b)=>{
+    if (sortBy==='ts_desc')  return (b.ts||0)  - (a.ts||0);
+    if (sortBy==='ts_asc')   return (a.ts||0)  - (b.ts||0);
+    if (sortBy==='name_asc') return (a.name||'').localeCompare(b.name||'');
+    if (sortBy==='name_desc')return (b.name||'').localeCompare(a.name||'');
+    if (sortBy==='qty_desc') return (b.qty||0) - (a.qty||0);
+    if (sortBy==='qty_asc')  return (a.qty||0) - (b.qty||0);
+    if (sortBy==='loc_asc')  return (a.loc||'').localeCompare(b.loc||'');
+    if (sortBy==='loc_desc') return (a.loc||'').localeCompare(b.loc||'') * -1;
+    return 0;
+  });
+
+  // KPIs
+  document.getElementById('kpiItems').textContent = items.length;
+  document.getElementById('kpiQty').textContent   = items.reduce((s,i)=>s+(Number(i.qty)||0),0);
+
+  // rendern
+  const container = document.getElementById('list');
+  if (items.length===0){
+    container.innerHTML = '<div class="pill">Keine Einträge gefunden.</div>';
+    return;
+  }
+  const parts = items.map(it => {
+    const img = it.imgData ? `<img src="${it.imgData}" alt="Bild">` : 'kein Bild';
+    return `
+      <div class="card" data-id="${it.id}">
+        <div class="row">
+          <div class="thumb">${img}</div>
+          <div style="flex:1">
+            <div class="row space">
+              <strong>${it.name || ''}</strong>
+              <span>Bestand: <b>${it.qty||0}</b></span>
+            </div>
+            <div class="row">
+              <span class="badge">Ort: ${it.loc || '–'}</span>
+            </div>
+            <div class="row" style="margin-top:8px">
+              <button class="btn" data-action="edit">✏️ Bearbeiten</button>
+              <button class="btn" data-action="inc">＋ Eingang</button>
+              <button class="btn" data-action="dec">− Ausgang</button>
+              <button class="btn danger" data-action="del">🗑️ Löschen</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = parts.join('');
+}
+
+/* ===== Artikel hinzufügen ===== */
+let currentImageData = '';
+document.getElementById('fileGallery').addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  try{
+    current = await compressFile(f, 1200, .9);
+    document.getElementById('preview').innerHTML = `<img src="${current}" alt="Bild">`;
+    currentImageData = current;
+  }catch(e){ alert('Bild konnte nicht geladen werden.'); }
+});
+document.getElementById('fileCamera').addEventListener('change', async (e)=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  try{
+    const current = await compressFile(f, 1200, .9);
+    document.getElementById('preview').innerHTML = `<img src="${current}" alt="Bild">`;
+    currentImageData = current;
+  }catch(e){ alert('Kamera/Bild konnte nicht verarbeitet werden.'); }
+});
+
+async function onAdd(e){
+  e.preventDefault();
+  const name = (document.getElementById('name').get.value || '').trim() // error; fix
+}
+</script>
+
+</body>
+</html>

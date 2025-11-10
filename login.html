@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anmelden – Handy Lager</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f172a"/>
+<style>
+:root{
+  --brand:#f97316;--bg:#0a0f1a;--card:#fff;--bd:#e5e7eb;--text:#0b1220;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  background:var(--bg);
+  color:var(--text);
+}
+.wrap{max-width:520px;margin:0 auto;padding:24px}
+.card{
+  background:var(--card);
+  border:1px solid var(--bd);
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 8px 20px rgba(0,0,0,.05);
+}
+h1{color:#fff;text-align:center;margin:22px 0}
+label{display:block;margin:10px 0 6px}
+.input,select{
+  width:100%;
+  padding:12px;
+  border:1px solid var(--bd);
+  border-radius:12px;
+  background:#fff;
+}
+.btn{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:none;
+  margin-top:14px;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn.primary{background:var(--brand);color:#fff}
+.btn.ghost{background:#fff;color:#111;border:1px solid #ddd}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.small{font-size:12px;color:#555}
+hr{border:none;border-top:1px solid #eee;margin:16px 0}
+.notice{
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  border-radius:12px;
+  padding:10px;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+  <h1>📦 Handy Lager</h1>
+  <div class="wrap">
+    <div class="card">
+      <h3 style="margin:0 0 12px">Anmeldung</h3>
+      <form id="loginForm">
+        <label for="email">E-Mail</label>
+        <input id="email" class="input" type="email" placeholder="z. B. admin@local" required>
+        <label for="pwd">Passwort / PIN</label>
+        <input id="pwd" class="input" type="password" placeholder="••••" required>
+        <button class="btn primary" type="submit">Anmelden</button>
+      </form>
+
+      <div class="notice">
+        <div class="small"><b>Erststart:</b> Demo-Admin vorhanden</div>
+        <div class="small">E-Mail: <b>admin@local</b> &nbsp;•&nbsp; Passwort: <b>1234</b></div>
+      </div>
+
+      <hr>
+      <h4 style="margin:0 0 8px">Kunden-Login anlegen (Admin)</h4>
+      <div class="row"><select id="customerSel" class="input"></select></div>
+      <div class="row"><input id="newCustEmail" class="input" type="email" placeholder="Kunden-E-Mail"></div>
+      <div class="row"><input id="newCustPwd" class="input" type="text" placeholder="Initial-PIN (z. B. 1234)"></div>
+      <button id="btnCreateCustUser" class="btn">Kunden-Benutzer anlegen/aktualisieren</button>
+      <div id="msg" class="small" style="margin-top:8px"></div>
+
+      <hr>
+      <button id="btnReset" class="btn ghost" type="button">🧹 Reset (Cache & DB) – falls etwas hängt</button>
+    </div>
+  </div>
+
+<script>
+/* ===== Guard: IndexedDB vorhanden? ===== */
+if (!('indexedDB' in window)) {
+  alert("IndexedDB wird nicht unterstützt (evtl. Inkognito-Modus?).");
+}
+
+/* ===== Reset: SW + Cache + IndexedDB löschen ===== */
+async function resetApp(){
+  try{
+    // Service Worker deregistrieren
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for(const r of regs){ await r.unregister(); }
+    }
+    // Caches löschen
+    if('caches' in self){
+      const names = await caches.keys();
+      for(const n of names){ await caches.delete(n); }
+    }
+    // Datenbanken löschen
+    const known = ['lagerPWA_CUSTLOGO'];
+    if(indexedDB.databases){
+      const list = await indexedDB.databases();
+      for(const db of list) if(db.name && db.name.startsWith('lagerPWA')) known.push(db.name);
+    }
+    for(const name of [...new Set(known)]){
+      await new Promise(res=>{
+        const req = indexedDB.deleteDatabase(name);
+        req.onsuccess=req.onerror=req.onblocked=()=>res();
+      });
+    }
+    localStorage.clear();
+    alert("Cache & Daten gelöscht. Seite wird neu geladen.");
+    location.reload(true);
+  }catch(e){alert("Reset-Fehler: "+(e?.message||e));}
+}
+document.getElementById('btnReset').onclick = resetApp;
+
+/* ===== IndexedDB v4 ===== */
+let idb;
+const DB_NAME="lagerPWA_CUSTLOGO", DB_VERSION=4;
+const openReq=indexedDB.open(DB_NAME,DB_VERSION);
+openReq.onupgradeneeded=e=>{
+  idb=e.target.result;
+  if(!idb.objectStoreNames.contains("customers")) idb.createObjectStore("customers",{keyPath:"id"});
+  if(!idb.objectStoreNames.contains("items"))     idb.createObjectStore("items",{keyPath:"id"});
+  if(!idb.objectStoreNames.contains("moves"))     idb.createObjectStore("moves",{keyPath:"id"});
+  if(!idb.objectStoreNames.contains("meta"))      idb.createObjectStore("meta",{keyPath:"key"});
+  if(!idb.objectStoreNames.contains("auth"))      idb.createObjectStore("auth",{keyPath:"email"});
+};
+openReq.onblocked = ()=>alert("Datenbank-Upgrade blockiert. Bitte alle Tabs schließen.");
+openReq.onerror   = e=>alert("IndexedDB nicht verfügbar\n"+(e?.target?.error?.message||""));
+openReq.onsuccess = e=>{idb=e.target.result;boot();};
+
+/* ===== Tx Helpers ===== */
+function tx(st,mode){return idb.transaction(st,mode).objectStore(st);}
+const getAll=(st)=>new Promise((r,j)=>{const x=tx(st,"readonly").getAll();x.onsuccess=()=>r(x.result||[]);x.onerror=j;});
+const getOne=(st,k)=>new Promise((r,j)=>{const x=tx(st,"readonly").get(k);x.onsuccess=()=>r(x.result||null);x.onerror=j;});
+const putOne=(st,o)=>new Promise((r,j)=>{const x=tx(st,"readwrite").put(o);x.onsuccess=()=>r();x.onerror=j;});
+
+/* ===== SHA256 ===== */
+async function sha(t){
+  const b=new TextEncoder().encode(t);
+  const d=await crypto.subtle.digest("SHA-256",b);
+  return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
+/* ===== Seed (Admin + Demo) ===== */
+async function seedIfEmpty(){
+  const admin=await getOne("auth","admin@local");
+  if(!admin){
+    await putOne("auth",{email:"admin@local",passHash:await sha("1234"),role:"admin",customerId:0});
+  }
+  const customers=await getAll("customers");
+  if(customers.length===0){
+    const now=Date.now();
+    const A={id:now,name:"Kunde A",logoData:""};
+    const B={id:now+1,name:"Kunde B",logoData:""};
+    await putOne("customers",A); await putOne("customers",B);
+    await putOne("meta",{key:`meta_${A.id}`,locs:["Hauptlager","Regal A1"]});
+    await putOne("meta",{key:`meta_${B.id}`,locs:["Hauptlager","Regal B1"]});
+  }
+}
+
+/* ===== Kundenliste ===== */
+async function fillCustomerSelect(){
+  const sel=document.getElementById("customerSel");
+  const cs=await getAll("customers");
+  sel.innerHTML=cs.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+}
+
+/* ===== Login + Kunden-Benutzer anlegen ===== */
+async function boot(){
+  await seedIfEmpty();
+  await fillCustomerSelect();
+
+  document.getElementById("loginForm").onsubmit=async(e)=>{
+    e.preventDefault();
+    const email=document.getElementById("email").value.trim().toLowerCase();
+    const pwd=document.getElementById("pwd").value;
+    const user=await getOne("auth",email);
+    if(!user){alert("Unbekannter Benutzer.");return;}
+    const ok=(user.passHash===await sha(pwd));
+    if(!ok){alert("Falsches Passwort / PIN.");return;}
+    localStorage.setItem("hl_session",JSON.stringify({email:user.email,role:user.role,customerId:user.customerId||0,ts:Date.now()}));
+    location.href="lager_pwa_238.html";
+  };
+
+  document.getElementById("btnCreateCustUser").onclick=async()=>{
+    const custId=Number(document.getElementById("customerSel").value);
+    const email=document.getElementById("newCustEmail").value.trim().toLowerCase();
+    const pin=document.getElementById("newCustPwd").value.trim();
+    const msg=document.getElementById("msg");
+    if(!custId||!email||!pin){msg.textContent="Bitte Kunde, E-Mail und PIN angeben.";return;}
+    await putOne("auth",{email,passHash:await sha(pin),role:"customer",customerId:custId});
+    msg.textContent=`Kunden-Benutzer gespeichert: ${email}`;
+  };
+}
+
+/* ===== PWA Service Worker ===== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('sw.js');
+      if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        nw?.addEventListener('statechange',()=>{
+          if(nw.state==='installed' && navigator.serviceWorker.controller){
+            nw.postMessage({type:'SKIP_WAITING'});
+          }
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload());
+    }catch{}
+  });
+}
+</script>
+</body>
+</html>
