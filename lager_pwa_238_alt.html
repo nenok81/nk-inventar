@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d6efd" />
+  <title>NK Inventar – Lager</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+  <style>
+    :root{--bg:#ffffff;--card:#f8f9fc;--text:#0b1020;--muted:#667085;--primary:#0d6efd;--line:#e5e7ef;}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:12px}
+    header{display:flex;align-items:center;gap:10px;padding:8px 0}
+    .logo{font-weight:800;color:var(--primary);letter-spacing:.5px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .tabs{display:flex;gap:6px;margin:8px 0}
+    .tab{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#111;cursor:pointer}
+    .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+    input,select,textarea,button{font-size:14px}
+    input,select,textarea{padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#111;min-width:0}
+    textarea{min-height:70px}
+    button{padding:10px 14px;border-radius:10px;border:1px solid var(--primary);background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
+    button.ghost{background:#fff;color:#111;border:1px solid var(--line)}
+    button.warn{background:#c0392b;border-color:#c0392b}
+    .grid{display:grid;gap:8px}
+    .grid-2{grid-template-columns:repeat(2,1fr)}
+    .grid-3{grid-template-columns:repeat(3,1fr)}
+    .grid-4{grid-template-columns:repeat(4,1fr)}
+    @media (max-width:720px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+    th{color:#475467;font-weight:600}
+    .qtyBtn{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;color:#111;margin-right:6px}
+    .muted{color:var(--muted)}
+    .right{margin-left:auto}
+    .hide{display:none}
+    .toolbar{display:flex;gap:8px;align-items:center;margin:6px 0}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    .thumb{width:42px;height:42px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff}
+    .msg{font-size:13px;color:var(--muted);min-height:18px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="row">
+      <div class="logo">NK INVENTAR</div>
+      <span class="pill">PWA aktiv</span>
+      <span class="pill">Region: europe-west6</span>
+      <div class="right row">
+        <a class="tab" href="/index.html">Start</a>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="artikel">Artikel</button>
+      <button class="tab" data-tab="lagerorte">Lagerorte</button>
+      <button class="tab" data-tab="kunden">Kunden</button>
+    </div>
+
+    <!-- ARTIKEL -->
+    <section id="artikel" class="card">
+      <h2 style="margin:4px 0 10px">Artikel erfassen</h2>
+      <form id="artikelForm" class="grid grid-4" enctype="multipart/form-data">
+        <input id="aSku" placeholder="SKU *" required />
+        <input id="aName" placeholder="Name *" required />
+        <input id="aQty" type="number" placeholder="Menge *" value="0" required />
+        <input id="aBild" type="file" accept="image/*" />
+        <select id="aLager" required></select>
+        <select id="aKunde"></select>
+        <button type="submit">Speichern</button>
+        <button type="button" id="aReset" class="ghost">Zurücksetzen</button>
+        <input type="hidden" id="aId" />
+      </form>
+      <div class="msg" id="aMsg"></div>
+
+      <div class="toolbar">
+        <input id="aSearch" placeholder="Suche (SKU/Name)" style="flex:1" />
+        <button id="aReload" class="ghost">Neu laden</button>
+      </div>
+
+      <table>
+        <thead><tr>
+          <th>Bild</th><th>SKU</th><th>Name</th><th>Menge</th><th>Lagerort</th><th>Kunde</th><th>Aktionen</th>
+        </tr></thead>
+        <tbody id="aList"></tbody>
+      </table>
+    </section>
+
+    <!-- LAGERORTE -->
+    <section id="lagerorte" class="card hide">
+      <h2 style="margin:4px 0 10px">Lagerort anlegen</h2>
+      <form id="lagerForm" class="grid grid-3" enctype="multipart/form-data">
+        <input id="lName" placeholder="Lagername *" required />
+        <textarea id="lDesc" placeholder="Beschreibung"></textarea>
+        <input id="lBild" type="file" accept="image/*" />
+        <button type="submit">Speichern</button>
+        <button type="button" id="lReset" class="ghost">Zurücksetzen</button>
+        <input type="hidden" id="lId" />
+      </form>
+      <div class="msg" id="lMsg"></div>
+
+      <div class="toolbar">
+        <input id="lSearch" placeholder="Suche Lagerort" style="flex:1" />
+        <button id="lReload" class="ghost">Neu laden</button>
+      </div>
+
+      <table>
+        <thead><tr><th>Bild</th><th>Name</th><th>Beschreibung</th><th>Aktionen</th></tr></thead>
+        <tbody id="lList"></tbody>
+      </table>
+    </section>
+
+    <!-- KUNDEN -->
+    <section id="kunden" class="card hide">
+      <h2 style="margin:4px 0 10px">Kunde anlegen</h2>
+      <form id="kundeForm" class="grid grid-2">
+        <input id="kName" placeholder="Name *" required />
+        <input id="kAdresse" placeholder="Adresse" />
+        <input id="kTelefon" placeholder="Telefon" />
+        <input id="kEmail" type="email" placeholder="E-Mail" />
+        <button type="submit">Speichern</button>
+        <button type="button" id="kReset" class="ghost">Zurücksetzen</button>
+        <input type="hidden" id="kId" />
+      </form>
+      <div class="msg" id="kMsg"></div>
+
+      <div class="toolbar">
+        <input id="kSearch" placeholder="Suche Kunde" style="flex:1" />
+        <button id="kReload" class="ghost">Neu laden</button>
+      </div>
+
+      <table>
+        <thead><tr><th>Name</th><th>Adresse</th><th>Telefon</th><th>E-Mail</th><th>Aktionen</th></tr></thead>
+        <tbody id="kList"></tbody>
+      </table>
+    </section>
+
+    <footer class="muted" style="text-align:center;margin:14px 0">© <span id="year"></span> NK Inventar</footer>
+  </div>
+
+  <!-- Firebase + Firestore + Storage + Auth -->
+  <script type="module">
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Tabs
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(t=>{
+      t.onclick = ()=>{
+        tabs.forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        ['artikel','lagerorte','kunden'].forEach(id=>{
+          document.getElementById(id).classList.toggle('hide', id!==t.dataset.tab);
+        });
+      };
+    });
+
+    // Firebase SDKs
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, collection, addDoc, setDoc, getDoc, getDocs, doc, deleteDoc, updateDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+
+    // 👉👉👉 HIER DEINE KONFIG EINFÜGEN
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4oIfqmOOWSbUwD1cHn-fHv9qo5RSa47o",
+      authDomain: "DEIN_PROJECT_ID.firebaseapp.com",
+      projectId: "DEIN_PROJECT_ID",
+      storageBucket: "DEIN_PROJECT_ID.appspot.com",
+      messagingSenderId: "DEINE_SENDER_ID",
+      appId: "DEINE_APP_ID"
+    };
+
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    const ensureLogin = () => new Promise((res,rej)=>{
+      onAuthStateChanged(auth, async u=>{
+        if (u) return res(u);
+        try { const r = await signInWithPopup(auth, provider); res(r.user); }
+        catch(e){ rej(e); }
+      });
+    });
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+
+    /* ---------- KUNDEN ---------- */
+    const kForm = $('#kundeForm'), kMsg = $('#kMsg'), kList = $('#kList'), kId = $('#kId');
+    const kName = $('#kName'), kAdresse = $('#kAdresse'), kTelefon = $('#kTelefon'), kEmail = $('#kEmail'), kSearch = $('#kSearch');
+
+    async function loadKundenOnce(filter=""){
+      let html = "";
+      const snap = await getDocs(query(collection(db,'kunden'), orderBy('name')));
+      snap.forEach(d=>{
+        const k = d.data();
+        if (filter && !(k.name||'').toLowerCase().includes(filter.toLowerCase())) return;
+        html += `<tr>
+          <td>${k.name||''}</td>
+          <td>${k.adresse||''}</td>
+          <td>${k.telefon||''}</td>
+          <td>${k.email||''}</td>
+          <td>
+            <button class="ghost editK" data-id="${d.id}">✏️</button>
+            <button class="warn delK" data-id="${d.id}">🗑️</button>
+          </td>
+        </tr>`;
+      });
+      kList.innerHTML = html || `<tr><td colspan="5" class="muted">Keine Kunden</td></tr>`;
+      $$('.editK').forEach(b=> b.onclick = async ()=>{
+        const id = b.dataset.id;
+        const docSnap = await getDoc(doc(db,'kunden',id));
+        if (docSnap.exists()){
+          const v = docSnap.data();
+          kId.value = id; kName.value = v.name||''; kAdresse.value = v.adresse||'';
+          kTelefon.value = v.telefon||''; kEmail.value = v.email||'';
+          kMsg.textContent = 'Bearbeitungsmodus – ändere Felder und „Speichern“';
+        }
+      });
+      $$('.delK').forEach(b=> b.onclick = async ()=>{
+        await ensureLogin();
+        await deleteDoc(doc(db,'kunden', b.dataset.id));
+        loadKundenOnce(kSearch.value.trim());
+      });
+      // Artikel-Dropdown aktualisieren
+      await fillKundenDropdown();
+    }
+
+    if (kForm){
+      kForm.onsubmit = async (e)=>{
+        e.preventDefault();
+        try{
+          await ensureLogin();
+          const data = {
+            name: kName.value.trim(),
+            adresse: kAdresse.value.trim(),
+            telefon: kTelefon.value.trim(),
+            email: kEmail.value.trim(),
+            updatedAt: Date.now()
+          };
+          if (!data.name){ kMsg.textContent='Name fehlt'; return; }
+          if (kId.value){
+            await setDoc(doc(db,'kunden',kId.value), data, {merge:true});
+            kMsg.textContent='Kunde aktualisiert ✓';
+          } else {
+            data.createdAt = Date.now();
+            await addDoc(collection(db,'kunden'), data);
+            kMsg.textContent='Kunde gespeichert ✓';
+          }
+          kForm.reset(); kId.value="";
+          loadKundenOnce(kSearch.value.trim());
+        }catch(err){ kMsg.textContent = 'Fehler: '+err.message; }
+      };
+      $('#kReset').onclick = ()=>{ kForm.reset(); kId.value=""; kMsg.textContent=''; };
+      $('#kReload').onclick = ()=> loadKundenOnce(kSearch.value.trim());
+      kSearch.oninput = ()=> loadKundenOnce(kSearch.value.trim());
+      loadKundenOnce();
+    }
+
+    /* ---------- LAGERORTE ---------- */
+    const lForm = $('#lagerForm'), lMsg = $('#lMsg'), lList = $('#lList'), lId = $('#lId');
+    const lName = $('#lName'), lDesc = $('#lDesc'), lBild = $('#lBild'), lSearch = $('#lSearch');
+
+    async function loadLagerOnce(filter=""){
+      let html = "";
+      const snap = await getDocs(query(collection(db,'lagerorte'), orderBy('name')));
+      snap.forEach(d=>{
+        const v = d.data();
+        if (filter && !(v.name||'').toLowerCase().includes(filter.toLowerCase())) return;
+        html += `<tr>
+          <td>${v.bildUrl ? `<img class="thumb" src="${v.bildUrl}"/>` : ''}</td>
+          <td>${v.name||''}</td>
+          <td>${v.beschreibung||''}</td>
+          <td>
+            <button class="ghost editL" data-id="${d.id}">✏️</button>
+            <button class="warn delL" data-id="${d.id}">🗑️</button>
+          </td>
+        </tr>`;
+      });
+      lList.innerHTML = html || `<tr><td colspan="4" class="muted">Keine Lagerorte</td></tr>`;
+      $$('.editL').forEach(b=> b.onclick = async ()=>{
+        const id = b.dataset.id;
+        const s = await getDoc(doc(db,'lagerorte',id));
+        if (s.exists()){
+          const v = s.data();
+          lId.value = id; lName.value = v.name||''; lDesc.value = v.beschreibung||'';
+          lMsg.textContent = 'Bearbeitungsmodus – ändere Felder und „Speichern“';
+        }
+      });
+      $$('.delL').forEach(b=> b.onclick = async ()=>{
+        await ensureLogin(); await deleteDoc(doc(db,'lagerorte', b.dataset.id));
+        loadLagerOnce(lSearch.value.trim());
+      });
+      // Artikel-Dropdown aktualisieren
+      await fillLagerDropdown();
+    }
+
+    if (lForm){
+      lForm.onsubmit = async (e)=>{
+        e.preventDefault();
+        try{
+          await ensureLogin();
+          const name = lName.value.trim();
+          if (!name){ lMsg.textContent='Name fehlt'; return; }
+          const beschreibung = lDesc.value.trim();
+          const file = lBild.files[0];
+          let bildUrl = "";
+          if (file){
+            const r = ref(storage, `lagerorte/${Date.now()}_${file.name}`);
+            await uploadBytes(r, file);
+            bildUrl = await getDownloadURL(r);
+          }
+          const data = { name, beschreibung, updatedAt: Date.now() };
+          if (bildUrl) data.bildUrl = bildUrl;
+
+          if (lId.value){
+            await setDoc(doc(db,'lagerorte', lId.value), data, {merge:true});
+            lMsg.textContent='Lagerort aktualisiert ✓';
+          } else {
+            data.createdAt = Date.now();
+            await addDoc(collection(db,'lagerorte'), data);
+            lMsg.textContent='Lagerort gespeichert ✓';
+          }
+          lForm.reset(); lId.value="";
+          loadLagerOnce(lSearch.value.trim());
+        }catch(err){ lMsg.textContent = 'Fehler: '+err.message; }
+      };
+      $('#lReset').onclick = ()=>{ lForm.reset(); lId.value=""; lMsg.textContent=''; };
+      $('#lReload').onclick = ()=> loadLagerOnce(lSearch.value.trim());
+      lSearch.oninput = ()=> loadLagerOnce(lSearch.value.trim());
+      loadLagerOnce();
+    }
+
+    /* ---------- ARTIKEL ---------- */
+    const aForm = $('#artikelForm'), aMsg = $('#aMsg'), aList = $('#aList'), aId = $('#aId');
+    const aSku = $('#aSku'), aName = $('#aName'), aQty = $('#aQty'), aBild = $('#aBild');
+    const aLager = $('#aLager'), aKunde = $('#aKunde'), aSearch = $('#aSearch');
+
+    async function fillLagerDropdown(){
+      const snap = await getDocs(query(collection(db,'lagerorte'), orderBy('name')));
+      aLager.innerHTML = `<option value="">Lagerort wählen *</option>`;
+      snap.forEach(d=>{
+        const v = d.data();
+        aLager.insertAdjacentHTML('beforeend', `<option value="${d.id}">${v.name||'(ohne Name)'}</option>`);
+      });
+    }
+    async function fillKundenDropdown(){
+      const snap = await getDocs(query(collection(db,'kunden'), orderBy('name')));
+      aKunde.innerHTML = `<option value="">(optional) Kunde wählen</option>`;
+      snap.forEach(d=>{
+        const v = d.data();
+        aKunde.insertAdjacentHTML('beforeend', `<option value="${d.id}">${v.name||'(ohne Name)'}</option>`);
+      });
+    }
+
+    async function loadArtikelOnce(filter=""){
+      let html = "";
+      const snap = await getDocs(query(collection(db,'artikel'), orderBy('name')));
+      const lagerMap = {}; const kundenMap = {};
+      // Vorab Lager/Kunden cachen
+      (await getDocs(collection(db,'lagerorte'))).forEach(d=> lagerMap[d.id] = (d.data().name||''));
+      (await getDocs(collection(db,'kunden'))).forEach(d=> kundenMap[d.id] = (d.data().name||''));
+
+      snap.forEach(d=>{
+        const a = d.data();
+        if (filter){
+          const s = `${a.sku||''} ${a.name||''}`.toLowerCase();
+          if (!s.includes(filter.toLowerCase())) return;
+        }
+        html += `<tr>
+          <td>${a.bildUrl ? `<img class="thumb" src="${a.bildUrl}">` : ''}</td>
+          <td>${a.sku||''}</td>
+          <td>${a.name||''}</td>
+          <td class="qty">${a.qty ?? 0}</td>
+          <td>${lagerMap[a.lagerortId] || ''}</td>
+          <td>${kundenMap[a.kundeId] || ''}</td>
+          <td>
+            <button class="qtyBtn inc" data-id="${d.id}">+1</button>
+            <button class="qtyBtn dec" data-id="${d.id}">-1</button>
+            <button class="ghost editA" data-id="${d.id}">✏️</button>
+            <button class="warn delA" data-id="${d.id}">🗑️</button>
+          </td>
+        </tr>`;
+      });
+      aList.innerHTML = html || `<tr><td colspan="7" class="muted">Keine Artikel</td></tr>`;
+
+      $$('.inc').forEach(b=> b.onclick = async ()=>{
+        await ensureLogin();
+        const id = b.dataset.id;
+        const row = b.closest('tr'); const cell = row.querySelector('.qty');
+        const nv = (parseInt(cell.textContent||'0',10)||0)+1; cell.textContent = nv;
+        await updateDoc(doc(db,'artikel',id), { qty: nv });
+      });
+      $$('.dec').forEach(b=> b.onclick = async ()=>{
+        await ensureLogin();
+        const id = b.dataset.id;
+        const row = b.closest('tr'); const cell = row.querySelector('.qty');
+        const nv = Math.max(0, (parseInt(cell.textContent||'0',10)||0)-1); cell.textContent = nv;
+        await updateDoc(doc(db,'artikel',id), { qty: nv });
+      });
+      $$('.delA').forEach(b=> b.onclick = async ()=>{
+        await ensureLogin(); await deleteDoc(doc(db,'artikel',b.dataset.id));
+        loadArtikelOnce(aSearch.value.trim());
+      });
+      $$('.editA').forEach(b=> b.onclick = async ()=>{
+        const id = b.dataset.id; const s = await getDoc(doc(db,'artikel',id));
+        if (s.exists()){
+          const v = s.data();
+          aId.value = id; aSku.value = v.sku||''; aName.value = v.name||''; aQty.value = v.qty ?? 0;
+          aLager.value = v.lagerortId || ""; aKunde.value = v.kundeId || "";
+          aMsg.textContent = 'Bearbeitungsmodus – ändere Felder und „Speichern“';
+        }
+      });
+    }
+
+    if (aForm){
+      // Dropdowns initial füllen
+      await fillLagerDropdown(); await fillKundenDropdown();
+
+      aForm.onsubmit = async (e)=>{
+        e.preventDefault();
+        try{
+          await ensureLogin();
+          const sku = aSku.value.trim(), name = aName.value.trim();
+          const qty = parseInt(aQty.value||'0',10)||0;
+          const lagerortId = aLager.value || ""; const kundeId = aKunde.value || "";
+          if (!sku || !name || !lagerortId){ aMsg.textContent='SKU/Name/Lagerort erforderlich'; return; }
+          let bildUrl = "";
+          const file = aBild.files[0];
+          if (file){
+            const r = ref(storage, `artikel/${Date.now()}_${file.name}`);
+            await uploadBytes(r, file);
+            bildUrl = await getDownloadURL(r);
+          }
+          const data = { sku, name, qty, lagerortId, kundeId, updatedAt: Date.now() };
+          if (bildUrl) data.bildUrl = bildUrl;
+
+          if (aId.value){
+            await setDoc(doc(db,'artikel',aId.value), data, {merge:true});
+            aMsg.textContent = 'Artikel aktualisiert ✓';
+          } else {
+            data.createdAt = Date.now();
+            await addDoc(collection(db,'artikel'), data);
+            aMsg.textContent = 'Artikel gespeichert ✓';
+          }
+          aForm.reset(); aId.value="";
+          loadArtikelOnce(aSearch.value.trim());
+        }catch(err){ aMsg.textContent = 'Fehler: '+err.message; }
+      };
+      $('#aReset').onclick = ()=>{ aForm.reset(); aId.value=""; aMsg.textContent=''; };
+      $('#aReload').onclick = ()=> loadArtikelOnce(aSearch.value.trim());
+      aSearch.oninput = ()=> loadArtikelOnce(aSearch.value.trim());
+      loadArtikelOnce();
+    }
+  </script>
+
+  <!-- Service Worker registrieren -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
