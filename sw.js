@@ -1,5 +1,5 @@
 /* sw.js – NK Inventar PWA */
-const CACHE_NAME = 'nk-inventar-v6'; // bei Updates hochzählen
+const CACHE_NAME = 'nk-inventar-v7'; // bei Updates hochzählen
 const ASSETS = [
   '/', '/index.html', '/lager_pwa_238.html', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png'
