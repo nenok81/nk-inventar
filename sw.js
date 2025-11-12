@@ -1,4 +1,4 @@
-/* sw.js – NK Inventar PWA */
+/* sw.js – NKk Inventar PWA */
 const CACHE_NAME = 'nk-inventar-v7'; // bei Updates hochzählen
 const ASSETS = [
   '/', '/index.html', '/lager_pwa_238.html', '/manifest.json',
