@@ -65,6 +65,16 @@
   </script>
 </head>
 <body>
+  <button id="testKunde" style="position:fixed;right:10px;bottom:70px;z-index:9999">TEST-KUNDE</button>
+<script>
+  document.getElementById('testKunde').onclick = async ()=>{
+    try{
+      await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      await firebase.firestore().collection('kunden').add({ name:'Test '+Date.now(), createdAt: Date.now() });
+      alert('Kunde geschrieben ✓');
+    }catch(e){ alert('Fehler: '+(e.message||e)); }
+  };
+</script>
   <div class="wrap">
     <header>
       <div class="logo">NK INVENTAR</div>
